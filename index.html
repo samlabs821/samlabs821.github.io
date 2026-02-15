@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compound Interest Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    :root {
+      --bg: #f5f6f8;
+      --surface: #ffffff;
+      --border: #e0e3e8;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --text: #1e293b;
+      --muted: #64748b;
+      --success: #16a34a;
+      --warning: #d97706;
+      --error: #dc2626;
+      --radius: 8px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* ---- Mobile-first container ---- */
+    .container {
+      width: 100%;
+      padding: 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.25rem;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.15rem;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    /* ---- Form: mobile = single column ---- */
+    .calc-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.3rem;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px; /* prevents iOS zoom on focus */
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .inline-fields {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-end;
+    }
+
+    .inline-fields .form-group { flex: 1; }
+
+    .deposit-section {
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+    }
+
+    .deposit-section h3 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+
+    .deposit-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .btn-calculate {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.85rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-calculate:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-calculate:active {
+      background: #1e40af;
+      transform: scale(0.98);
+    }
+
+    /* ---- Results ---- */
+    .results-section {
+      display: none;
+    }
+
+    .results-section.visible {
+      display: block;
+    }
+
+    /* Mobile: 1 col summary cards, stacked */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem;
+      border-left: 4px solid var(--accent);
+    }
+
+    .summary-card.green { border-left-color: var(--success); }
+    .summary-card.amber { border-left-color: var(--warning); }
+
+    .summary-card .card-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 0.2rem;
+    }
+
+    .summary-card .card-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .summary-card .card-sub {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+
+    /* ---- Chart ---- */
+    .chart-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .chart-wrapper h2 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--text);
+    }
+
+    .chart-area {
+      height: 250px;
+    }
+
+    /* ---- Tables ---- */
+    .table-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .table-wrapper h2 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .table-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-tab {
+      flex: 1;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+      text-align: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .table-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      min-width: 520px; /* ensure horizontal scroll on small screens */
+    }
+
+    th {
+      background: var(--bg);
+      text-align: right;
+      padding: 0.6rem 0.65rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: var(--muted);
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    th:first-child { text-align: left; }
+
+    td {
+      padding: 0.5rem 0.65rem;
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    td:first-child {
+      text-align: left;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    tr:hover { background: var(--accent-soft); }
+    tr:last-child td { border-bottom: none; }
+
+    .row-highlight {
+      background: #fffbeb;
+    }
+
+    /* ===== Tablet (≥600px) ===== */
+    @media (min-width: 600px) {
+      .container {
+        padding: 1.5rem;
+      }
+
+      header h1 { font-size: 1.5rem; }
+
+      .calc-form {
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem 1.5rem;
+        padding: 1.25rem 1.5rem;
+      }
+
+      .deposit-section {
+        grid-column: 1 / -1;
+      }
+
+      .deposit-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .btn-calculate {
+        grid-column: 1 / -1;
+      }
+
+      .summary-cards {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .summary-card .card-value { font-size: 1.2rem; }
+
+      .chart-area { height: 300px; }
+
+      table { font-size: 0.82rem; }
+      th { padding: 0.65rem 0.85rem; font-size: 0.7rem; }
+      td { padding: 0.55rem 0.85rem; font-size: 0.78rem; }
+    }
+
+    /* ===== Desktop (≥960px) ===== */
+    @media (min-width: 960px) {
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header h1 { font-size: 1.75rem; }
+      header { margin-bottom: 2rem; }
+
+      .calc-form {
+        padding: 1.5rem 2rem;
+        gap: 1.25rem 2rem;
+      }
+
+      .summary-cards {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+      }
+
+      .summary-card {
+        padding: 1.25rem;
+      }
+
+      .summary-card .card-label { font-size: 0.75rem; }
+      .summary-card .card-value { font-size: 1.5rem; }
+
+      .chart-wrapper { padding: 1.5rem; }
+      .chart-area { height: 380px; }
+
+      .table-wrapper h2 { padding: 1rem 1.5rem; }
+      table { font-size: 0.85rem; }
+      th { padding: 0.75rem 1rem; font-size: 0.72rem; }
+      td { padding: 0.65rem 1rem; font-size: 0.82rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>💰 Compound Interest Calculator</h1>
+      <p>See how your savings and investments grow over time with compound interest</p>
+    </header>
+
+    <!-- ===== FORM ===== -->
+    <div class="calc-form">
+      <div class="form-group">
+        <label>Initial Investment ($)</label>
+        <input type="number" id="initialInvestment" value="5000" min="0" step="100">
+      </div>
+
+      <div class="form-group">
+        <label>Annual Interest Rate (%)</label>
+        <input type="number" id="interestRate" value="5" min="0" max="100" step="0.1">
+      </div>
+
+      <div class="form-group">
+        <label>Compound Frequency</label>
+        <select id="compoundFrequency">
+          <option value="365">Daily (365/yr)</option>
+          <option value="52">Weekly (52/yr)</option>
+          <option value="26">Bi-Weekly (26/yr)</option>
+          <option value="24">Semi-Monthly (24/yr)</option>
+          <option value="12" selected>Monthly (12/yr)</option>
+          <option value="6">Bi-Monthly (6/yr)</option>
+          <option value="4">Quarterly (4/yr)</option>
+          <option value="2">Half-Yearly (2/yr)</option>
+          <option value="1">Yearly (1/yr)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Time Period</label>
+        <div class="inline-fields">
+          <div class="form-group">
+            <label>Years</label>
+            <input type="number" id="years" value="5" min="0" max="100" step="1">
+          </div>
+          <div class="form-group">
+            <label>Months</label>
+            <input type="number" id="months" value="0" min="0" max="11" step="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="deposit-section">
+        <h3>Regular Contributions (optional)</h3>
+        <div class="deposit-grid">
+          <div class="form-group">
+            <label>Deposit Amount ($)</label>
+            <input type="number" id="depositAmount" value="0" min="0" step="10">
+          </div>
+          <div class="form-group">
+            <label>Deposit Frequency</label>
+            <select id="depositFrequency">
+              <option value="52">Weekly</option>
+              <option value="26">Bi-Weekly</option>
+              <option value="12" selected>Monthly</option>
+              <option value="4">Quarterly</option>
+              <option value="2">Half-Yearly</option>
+              <option value="1">Yearly</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Deposit Timing</label>
+            <select id="depositTiming">
+              <option value="end" selected>End of period</option>
+              <option value="beginning">Beginning of period</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Annual Deposit Increase (%)</label>
+            <input type="number" id="depositIncrease" value="0" min="0" max="100" step="0.5">
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-calculate" onclick="calculate()">Calculate</button>
+    </div>
+
+    <!-- ===== RESULTS ===== -->
+    <div class="results-section" id="resultsSection">
+
+      <div class="summary-cards" id="summaryCards"></div>
+
+      <div class="chart-wrapper">
+        <h2>Growth Over Time</h2>
+        <div class="chart-area">
+          <canvas id="growthChart"></canvas>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <h2>Detailed Breakdown</h2>
+        <div class="table-tabs">
+          <button class="table-tab active" onclick="showTab('yearly')">Yearly</button>
+          <button class="table-tab" onclick="showTab('monthly')">Monthly</button>
+        </div>
+        <div class="table-scroll">
+          <table id="yearlyTable" style="display:table;"></table>
+          <table id="monthlyTable" style="display:none;"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let chartInstance = null;
+
+    // ===== CORE COMPOUND INTEREST FORMULA =====
+    // A = P(1 + r/n)^(nt) + deposits
+    function calculate() {
+      const P = parseFloat(document.getElementById('initialInvestment').value) || 0;
+      const annualRate = parseFloat(document.getElementById('interestRate').value) || 0;
+      const r = annualRate / 100;
+      const n = parseInt(document.getElementById('compoundFrequency').value);
+      const yrs = parseInt(document.getElementById('years').value) || 0;
+      const mos = parseInt(document.getElementById('months').value) || 0;
+      const totalMonths = yrs * 12 + mos;
+
+      const depositAmt = parseFloat(document.getElementById('depositAmount').value) || 0;
+      const depositFreq = parseInt(document.getElementById('depositFrequency').value);
+      const depositTiming = document.getElementById('depositTiming').value;
+      const depositIncreaseRate = (parseFloat(document.getElementById('depositIncrease').value) || 0) / 100;
+
+      // We simulate month-by-month for maximum accuracy with deposits
+      // Compound interest is applied every (12/n) months
+      const compoundEveryMonths = 12 / n; // e.g., monthly=1, quarterly=3
+      const depositEveryMonths = 12 / depositFreq;
+
+      let balance = P;
+      let totalDeposits = P;
+      let totalInterest = 0;
+      let currentDeposit = depositAmt;
+      let monthsSinceLastCompound = 0;
+      let accruedRate = 0;
+
+      const monthlyData = [];
+      const yearlyData = [];
+
+      // Initial row
+      monthlyData.push({
+        month: 0,
+        deposit: P,
+        interest: 0,
+        totalDeposits: P,
+        totalInterest: 0,
+        balance: P
+      });
+
+      yearlyData.push({
+        year: 0,
+        deposit: P,
+        interest: 0,
+        totalDeposits: P,
+        totalInterest: 0,
+        balance: P
+      });
+
+      let yearDeposits = 0;
+      let yearInterest = 0;
+
+      for (let m = 1; m <= totalMonths; m++) {
+        let monthDeposit = 0;
+        let monthInterest = 0;
+
+        // Check if deposit happens this month
+        const isDepositMonth = depositAmt > 0 && (m % depositEveryMonths === 0 || depositEveryMonths < 1);
+
+        // Beginning-of-period deposit
+        if (isDepositMonth && depositTiming === 'beginning') {
+          balance += currentDeposit;
+          monthDeposit += currentDeposit;
+          totalDeposits += currentDeposit;
+        }
+
+        // Compound interest: apply periodically
+        // Monthly rate = r / n, applied every (12/n) months
+        // Simplified: accrue monthly portion, compound at frequency
+        // For accuracy, we compound every month using monthly-equivalent rate
+        const monthlyRate = Math.pow(1 + r / n, n / 12) - 1;
+        monthInterest = balance * monthlyRate;
+        balance += monthInterest;
+        totalInterest += monthInterest;
+
+        // End-of-period deposit
+        if (isDepositMonth && depositTiming === 'end') {
+          balance += currentDeposit;
+          monthDeposit += currentDeposit;
+          totalDeposits += currentDeposit;
+        }
+
+        yearDeposits += monthDeposit;
+        yearInterest += monthInterest;
+
+        monthlyData.push({
+          month: m,
+          deposit: monthDeposit,
+          interest: monthInterest,
+          totalDeposits: totalDeposits,
+          totalInterest: totalInterest,
+          balance: balance
+        });
+
+        // Yearly milestone
+        if (m % 12 === 0) {
+          yearlyData.push({
+            year: m / 12,
+            deposit: yearDeposits,
+            interest: yearInterest,
+            totalDeposits: totalDeposits,
+            totalInterest: totalInterest,
+            balance: balance
+          });
+          yearDeposits = 0;
+          yearInterest = 0;
+
+          // Annual deposit increase
+          if (depositIncreaseRate > 0) {
+            currentDeposit = currentDeposit * (1 + depositIncreaseRate);
+          }
+        }
+      }
+
+      // If last period wasn't a full year, push partial year
+      if (totalMonths % 12 !== 0) {
+        yearlyData.push({
+          year: totalMonths / 12,
+          deposit: yearDeposits,
+          interest: yearInterest,
+          totalDeposits: totalDeposits,
+          totalInterest: totalInterest,
+          balance: balance
+        });
+      }
+
+      const finalBalance = balance;
+      const effectiveRate = n > 1 ? (Math.pow(1 + r / n, n) - 1) * 100 : annualRate;
+      const ror = P > 0 ? ((finalBalance - P) / P * 100) : 0;
+
+      // Time to double (Rule of 72 approximation, then exact)
+      let doubleYears = 0;
+      let doubleMonths = 0;
+      if (r > 0) {
+        const exactDouble = Math.log(2) / (n * Math.log(1 + r / n));
+        doubleYears = Math.floor(exactDouble);
+        doubleMonths = Math.round((exactDouble - doubleYears) * 12);
+      }
+
+      renderSummary(P, finalBalance, totalDeposits, totalInterest, effectiveRate, annualRate, ror, doubleYears, doubleMonths);
+      renderChart(monthlyData, totalMonths);
+      renderYearlyTable(yearlyData);
+      renderMonthlyTable(monthlyData);
+
+      document.getElementById('resultsSection').classList.add('visible');
+    }
+
+    // ===== SUMMARY CARDS =====
+    function renderSummary(principal, finalValue, totalDeposits, totalInterest, effectiveRate, nominalRate, ror, doubleYrs, doubleMos) {
+      const fmt = v => '$' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      document.getElementById('summaryCards').innerHTML = `
+        <div class="summary-card">
+          <div class="card-label">Future Value</div>
+          <div class="card-value">${fmt(finalValue)}</div>
+        </div>
+        <div class="summary-card green">
+          <div class="card-label">Total Interest Earned</div>
+          <div class="card-value">${fmt(totalInterest)}</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-label">Total Deposits</div>
+          <div class="card-value">${fmt(totalDeposits)}</div>
+          <div class="card-sub">Initial + contributions</div>
+        </div>
+        <div class="summary-card amber">
+          <div class="card-label">Effective Annual Rate (APY)</div>
+          <div class="card-value">${effectiveRate.toFixed(2)}%</div>
+          <div class="card-sub">Nominal: ${nominalRate}%</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-label">All-Time Return (RoR)</div>
+          <div class="card-value">${ror.toFixed(2)}%</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-label">Time to Double</div>
+          <div class="card-value">${doubleYrs > 0 || doubleMos > 0 ? `${doubleYrs}y ${doubleMos}m` : 'N/A'}</div>
+          <div class="card-sub">Without additional deposits</div>
+        </div>
+      `;
+    }
+
+    // ===== CHART =====
+    function renderChart(monthlyData, totalMonths) {
+      const canvas = document.getElementById('growthChart');
+      const ctx = canvas.getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      // Sample at reasonable intervals
+      const step = Math.max(1, Math.ceil(monthlyData.length / 120));
+      const sampled = monthlyData.filter((_, i) => i === 0 || i % step === 0 || i === monthlyData.length - 1);
+
+      const labels = sampled.map(d => {
+        if (d.month === 0) return '0';
+        const y = Math.floor(d.month / 12);
+        const m = d.month % 12;
+        return y > 0 ? (m === 0 ? `Yr ${y}` : `${y}y${m}m`) : `${m}m`;
+      });
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Balance',
+              data: sampled.map(d => d.balance),
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37,99,235,0.08)',
+              borderWidth: 2.5,
+              tension: 0.3,
+              fill: true,
+              pointRadius: 0,
+              pointHoverRadius: 4
+            },
+            {
+              label: 'Total Deposits',
+              data: sampled.map(d => d.totalDeposits),
+              borderColor: '#d97706',
+              backgroundColor: 'rgba(217,119,6,0.06)',
+              borderWidth: 2,
+              tension: 0.3,
+              borderDash: [6, 3],
+              fill: false,
+              pointRadius: 0,
+              pointHoverRadius: 4
+            },
+            {
+              label: 'Interest Earned',
+              data: sampled.map(d => d.totalInterest),
+              borderColor: '#16a34a',
+              backgroundColor: 'rgba(22,163,74,0.06)',
+              borderWidth: 2,
+              tension: 0.3,
+              borderDash: [3, 3],
+              fill: false,
+              pointRadius: 0,
+              pointHoverRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              labels: {
+                font: { family: 'Inter', size: 12 },
+                usePointStyle: true,
+                padding: 16
+              }
+            },
+            tooltip: {
+              backgroundColor: '#fff',
+              titleColor: '#1e293b',
+              bodyColor: '#1e293b',
+              borderColor: '#e0e3e8',
+              borderWidth: 1,
+              bodyFont: { family: 'JetBrains Mono', size: 11 },
+              callbacks: {
+                label: ctx => `${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 10 }, maxTicksLimit: 20 }
+            },
+            y: {
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: {
+                font: { family: 'JetBrains Mono', size: 10 },
+                callback: v => '$' + v.toLocaleString(undefined, { maximumFractionDigits: 0 })
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ===== YEARLY TABLE =====
+    function renderYearlyTable(data) {
+      const fmt = v => '$' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const headers = `<thead><tr>
+        <th>Year</th>
+        <th>Deposits & Withdrawals</th>
+        <th>Interest</th>
+        <th>Total Deposits</th>
+        <th>Accrued Interest</th>
+        <th>Balance</th>
+      </tr></thead>`;
+
+      const rows = data.map(d => `<tr${d.year === 0 ? ' class="row-highlight"' : ''}>
+        <td>${d.year === 0 ? '0' : d.year % 1 === 0 ? d.year : d.year.toFixed(1)}</td>
+        <td>${d.deposit > 0 ? fmt(d.deposit) : '–'}</td>
+        <td>${d.interest > 0 ? fmt(d.interest) : '–'}</td>
+        <td>${fmt(d.totalDeposits)}</td>
+        <td>${d.totalInterest > 0 ? fmt(d.totalInterest) : '–'}</td>
+        <td>${fmt(d.balance)}</td>
+      </tr>`).join('');
+
+      document.getElementById('yearlyTable').innerHTML = headers + `<tbody>${rows}</tbody>`;
+    }
+
+    // ===== MONTHLY TABLE =====
+    function renderMonthlyTable(data) {
+      const fmt = v => '$' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const headers = `<thead><tr>
+        <th>Month</th>
+        <th>Deposits & Withdrawals</th>
+        <th>Interest</th>
+        <th>Total Deposits</th>
+        <th>Accrued Interest</th>
+        <th>Balance</th>
+      </tr></thead>`;
+
+      const rows = data.map(d => `<tr${d.month === 0 ? ' class="row-highlight"' : ''}>
+        <td>${d.month}</td>
+        <td>${d.deposit > 0 ? fmt(d.deposit) : '–'}</td>
+        <td>${d.interest > 0 ? fmt(d.interest) : '–'}</td>
+        <td>${fmt(d.totalDeposits)}</td>
+        <td>${d.totalInterest > 0 ? fmt(d.totalInterest) : '–'}</td>
+        <td>${fmt(d.balance)}</td>
+      </tr>`).join('');
+
+      document.getElementById('monthlyTable').innerHTML = headers + `<tbody>${rows}</tbody>`;
+    }
+
+    // ===== TABLE TABS =====
+    function showTab(tab) {
+      document.querySelectorAll('.table-tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('yearlyTable').style.display = tab === 'yearly' ? 'table' : 'none';
+      document.getElementById('monthlyTable').style.display = tab === 'monthly' ? 'table' : 'none';
+    }
+
+    // Auto-calculate on load
+    window.addEventListener('DOMContentLoaded', calculate);
+  </script>
+</body>
+</html>
