@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>12-Week OCaml Tracker</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #f17720; /* OCaml Orange */
+            --success: #10b981;
+            --border: #334155;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .progress-container {
+            width: 80%;
+            max-width: 600px;
+            background-color: var(--bg-color);
+            border-radius: 10px;
+            margin: 10px auto 0;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .progress-bar {
+            height: 20px;
+            background-color: var(--accent);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .week-tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+            color: var(--text-muted);
+        }
+
+        .week-tab:hover {
+            background-color: var(--border);
+        }
+
+        .week-tab.active {
+            background-color: var(--bg-color);
+            color: var(--accent);
+            border-left: 4px solid var(--accent);
+            font-weight: bold;
+        }
+
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .goal-box {
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--success);
+        }
+
+        .goal-box h2 { margin-top: 0; }
+        .goal-box p { color: var(--text-muted); margin-bottom: 5px; }
+
+        .task-card {
+            background-color: var(--panel-bg);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .task-card:hover {
+            border-color: var(--accent);
+        }
+
+        .task-card.completed {
+            opacity: 0.6;
+            border-color: var(--success);
+        }
+
+        .task-card.completed .task-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        input[type="checkbox"] {
+            margin-right: 15px;
+            width: 20px;
+            height: 20px;
+            accent-color: var(--success);
+            cursor: pointer;
+        }
+
+        .day-label {
+            font-weight: bold;
+            margin-right: 10px;
+            min-width: 120px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>OCaml 12-Week Curriculum</h1>
+        <p>Total Progress: <span id="progress-text">0</span>% (<span id="completed-count">0</span> / 84 Days)</p>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <div class="sidebar" id="sidebar">
+            </div>
+        <div class="content">
+            <div class="goal-box" id="goal-box">
+                </div>
+            <div id="task-list">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // Curriculum Data
+        const curriculum = [
+            {
+                week: 1, title: "The Foundation & Toolchain", outcome: "Simple CLI math script.",
+                tasks: [
+                    "Install opam and dune. Run dune init proj math_cli and build it.",
+                    "Basic types (int, float, string) and let bindings in the utop REPL.",
+                    "Write named functions and anonymous functions (lambdas).",
+                    "Write a let rec function to calculate a factorial.",
+                    "Experiment with List.map and List.filter in the REPL.",
+                    "Write a function that returns multiple values using a tuple, then unpack them.",
+                    "Mini-Project: Update math_cli to run a hardcoded math operation and print the result."
+                ]
+            },
+            {
+                week: 2, title: "Data Modeling & Pattern Matching", outcome: "A basic CLI Expression Evaluator.",
+                tasks: [
+                    "Define a variant (type color = Red | Green | Blue) and write a match statement.",
+                    "Define a typed record and instantiate it.",
+                    "Combine variants with data (type shape = Circle of float | Rect of float * float).",
+                    "Write a safe division function that returns an int option (Some / None).",
+                    "Refactor the division function to return a (int, string) result (Ok / Error).",
+                    "Practice using the Pipe Operator (|>) to chain function calls.",
+                    "Mini-Project: Build an AST evaluator using a recursive eval function and pattern matching."
+                ]
+            },
+            {
+                week: 3, title: "Bridging the Imperative Gap", outcome: "An In-Memory Todo CLI.",
+                tasks: [
+                    "Create an array, update an index, and note the syntax differences from lists.",
+                    "Create mutable state using ref, update it with :=, and read it with !.",
+                    "Write a while loop that mutates a ref until a condition is met.",
+                    "Create a functional Map from the Standard Library to store key-value pairs.",
+                    "Write a loop that continually reads user input via read_line ().",
+                    "Combine a recursive loop with a Map to hold application state over time.",
+                    "Mini-Project: Build a Todo CLI (add, list, quit commands) using a loop and a Map."
+                ]
+            },
+            {
+                week: 4, title: "The Module System (Part 1)", outcome: "Refactored Multi-file CLI tool.",
+                tasks: [
+                    "Create math.ml and call Math.add from your main.ml file.",
+                    "Define a submodule inside a file using module MySub = struct ... end.",
+                    "Create a .mli signature file to act as an interface for a module.",
+                    "Hide the internal implementation of a type in your .mli file (Abstract Types).",
+                    "Practice using open and module aliasing.",
+                    "Configure a library in your dune file and link it to an executable.",
+                    "Mini-Project: Refactor your Week 2 Evaluator into a separate library with a strict .mli interface."
+                ]
+            },
+            {
+                week: 5, title: "Functors (Parametrized Modules)", outcome: "A Generic Key-Value Store.",
+                tasks: [
+                    "Read the documentation on how Functors take modules as input to produce new modules.",
+                    "Use Set.Make from the standard library to create a String Set module.",
+                    "Define a STORE signature that specifies get and set functions.",
+                    "Write a Functor that takes a Hash module and produces a structured STORE.",
+                    "Experiment with the syntax differences between Functors and standard Generics.",
+                    "Read about First-class modules (passing modules as variables).",
+                    "Mini-Project: Build an in-memory KV store using a Functor to swap the storage mechanism."
+                ]
+            },
+            {
+                week: 6, title: "Advanced Error Handling", outcome: "A Safe File Parser.",
+                tasks: [
+                    "Learn raise and try ... with. Understand exceptions vs. Result types.",
+                    "Manually chain two functions that return Result using nested match statements.",
+                    "Refactor Day 2 to use Result.bind for cleaner chaining.",
+                    "Define a custom error ADT (type error = Parse_error of string | IO_error).",
+                    "Setup the let* binding operator for clean, synchronous-looking Result chaining.",
+                    "Write a file reader that catches Sys_error and converts it to your custom Result.",
+                    "Mini-Project: Write a config file parser that collects errors gracefully and prints a report."
+                ]
+            },
+            {
+                week: 7, title: "Tooling, Testing & Delivery", outcome: "A tested, statically linked, production-ready binary.",
+                tasks: [
+                    "Install Alcotest and write a basic unit test for a math function.",
+                    "Configure dune to recognize and run your tests via dune runtest.",
+                    "Set up an .ocamlformat file and auto-format your project code.",
+                    "Use odoc to generate HTML documentation for your .mli interfaces.",
+                    "Integrate the Cmdliner library for robust CLI flags and generated man pages.",
+                    "Learn the process for compiling a standalone static binary.",
+                    "Mini-Project: Add CLI flags to your File Parser, write tests, and compile to a static binary."
+                ]
+            },
+            {
+                week: 8, title: "The Outside World (JSON & HTTP)", outcome: "Synchronous Weather/Data Fetcher.",
+                tasks: [
+                    "Install yojson and parse a basic JSON string into an OCaml representation.",
+                    "Use ppx_deriving_yojson to automatically generate JSON parsers from your ADTs.",
+                    "Make a simple blocking GET request using ezcurl or cohttp.",
+                    "Fetch data from a public API and immediately parse it into your typed ADT.",
+                    "Implement graceful error handling for network failures or bad JSON payloads.",
+                    "Write a function to extract and format specific nested fields from the parsed data.",
+                    "Mini-Project: Build a CLI tool that queries an API, parses JSON, and prints a summary."
+                ]
+            },
+            {
+                week: 9, title: "Concurrency with Lwt", outcome: "Concurrent Web Fetcher.",
+                tasks: [
+                    "Create an Lwt.t promise that resolves with a string.",
+                    "Chain two Lwt promises together using Lwt.bind or the let* operator.",
+                    "Run a promise to completion using the event loop (Lwt_main.run).",
+                    "Use Lwt.all to run multiple promises simultaneously.",
+                    "Read a file asynchronously using Lwt_io.",
+                    "Make an asynchronous HTTP request using cohttp-lwt-unix.",
+                    "Mini-Project: Upgrade your fetcher to accept 5 endpoints, fetch concurrently, and measure time."
+                ]
+            },
+            {
+                week: 10, title: "Multicore & Parallelism (OCaml 5)", outcome: "Parallel Data Processor.",
+                tasks: [
+                    "Read about OCaml 5's memory model and how Domains differ from Lwt promises.",
+                    "Use Domain.spawn and Domain.join to run a heavy calculation on a separate core.",
+                    "Safely update a shared counter from two different domains using Atomics.",
+                    "Install Domainslib and set up a task pool for structured parallelism.",
+                    "Use Domainslib.Task.parallel_for to process an array concurrently.",
+                    "Write a small script to compare the performance of Lwt vs Domains on a CPU-heavy task.",
+                    "Mini-Project: Generate a large text file, then use Domains to count word frequencies in parallel."
+                ]
+            },
+            {
+                week: 11, title: "Effect Systems (OCaml 5)", outcome: "Simple Concurrency Scheduler.",
+                tasks: [
+                    "Read the theory behind Algebraic Effects and how they replace complex monad stacks.",
+                    "Define a custom Effect.t and use Effect.perform in a function.",
+                    "Write a basic effect handler to catch the effect and resume execution.",
+                    "Implement Get and Set effects to manage global state without using mutable refs.",
+                    "Build a Python-style yield generator function using Effects.",
+                    "Read about the differences between Deep and Shallow effect handlers.",
+                    "Mini-Project: Build a tiny cooperative scheduler that switches execution between functions."
+                ]
+            },
+            {
+                week: 12, title: "Capstone Project", outcome: "A Small Static Site Generator (SSG).",
+                tasks: [
+                    "Define the core ADTs for your SSG (Page, Template, and Config).",
+                    "Set up the CLI using Cmdliner to accept --source and --output directory flags.",
+                    "Write a directory traversal function to find all .md files in the source directory.",
+                    "Use the omd library to convert the discovered Markdown strings into HTML strings.",
+                    "Create a templating function to wrap the converted HTML in a standard layout structure.",
+                    "Use Lwt or Domainslib to write compiled HTML files to the output directory concurrently.",
+                    "Mini-Project: Compile your SSG to a static binary and test it on a sample directory."
+                ]
+            }
+        ];
+
+        let activeWeek = 1;
+        // Load progress from local storage, or initialize empty object
+        let progressData = JSON.parse(localStorage.getItem('ocamlProgress')) || {};
+
+        function init() {
+            renderSidebar();
+            renderWeek(activeWeek);
+            updateGlobalProgress();
+        }
+
+        function renderSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = '';
+            curriculum.forEach(weekData => {
+                const tab = document.createElement('div');
+                tab.className = `week-tab ${weekData.week === activeWeek ? 'active' : ''}`;
+                tab.innerText = `Week ${weekData.week}`;
+                tab.onclick = () => {
+                    activeWeek = weekData.week;
+                    renderSidebar();
+                    renderWeek(activeWeek);
+                };
+                sidebar.appendChild(tab);
+            });
+        }
+
+        function renderWeek(weekNum) {
+            const data = curriculum.find(w => w.week === weekNum);
+            
+            // Render Goal Box
+            document.getElementById('goal-box').innerHTML = `
+                <h2>Week ${data.week}: ${data.title}</h2>
+                <p><strong>Goal:</strong> Master the concepts for this week through daily practice.</p>
+                <p><strong>Outcome:</strong> ${data.outcome}</p>
+            `;
+
+            // Render Tasks
+            const taskList = document.getElementById('task-list');
+            taskList.innerHTML = '';
+            
+            data.tasks.forEach((taskDesc, index) => {
+                const dayNum = index + 1;
+                const taskId = `w${weekNum}-d${dayNum}`;
+                const isChecked = progressData[taskId] || false;
+
+                const card = document.createElement('div');
+                card.className = `task-card ${isChecked ? 'completed' : ''}`;
+                
+                // Clicking anywhere on the card toggles the checkbox
+                card.onclick = () => toggleTask(taskId, card);
+
+                card.innerHTML = `
+                    <input type="checkbox" id="${taskId}" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleTask('${taskId}', this.parentElement)">
+                    <div class="day-label">Day ${dayNum} (30 min)</div>
+                    <div class="task-text">${taskDesc}</div>
+                `;
+                taskList.appendChild(card);
+            });
+        }
+
+        function toggleTask(taskId, cardElement) {
+            const checkbox = cardElement.querySelector('input');
+            
+            // If the card was clicked, toggle the checkbox manually
+            if (event.target !== checkbox) {
+                checkbox.checked = !checkbox.checked;
+            }
+
+            // Update state
+            progressData[taskId] = checkbox.checked;
+            
+            // Update UI
+            if (checkbox.checked) {
+                cardElement.classList.add('completed');
+            } else {
+                cardElement.classList.remove('completed');
+            }
+
+            // Save and update progress
+            localStorage.setItem('ocamlProgress', JSON.stringify(progressData));
+            updateGlobalProgress();
+        }
+
+        function updateGlobalProgress() {
+            const totalTasks = 84; // 12 weeks * 7 days
+            const completedTasks = Object.values(progressData).filter(Boolean).length;
+            const percentage = Math.round((completedTasks / totalTasks) * 100);
+
+            document.getElementById('completed-count').innerText = completedTasks;
+            document.getElementById('progress-text').innerText = percentage;
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+        }
+
+        // Initialize app
+        init();
+    </script>
+</body>
+</html>
